@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nmap Web Scanner</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Nmap Automated Network Scanner</h2>
+        <form method="POST">
+            <label>Enter IP / Domain</label>
+            <input type="text" name="target" placeholder="192.168.1.1 or example.com" required
+                   value="{{target|default('') }}">
+
+            <label>Select Scan Type</label>
+            <select name="scan_type" id="scan_type" onchange="showExtraField()" required>
+                {% for name, arg in scan_options %}
+                    <option value="{{ arg }}" {% if scan_type==arg %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+            <div id="extraField" style="display:none;">
+                <label id="extraLabel"></label>
+                <input type="text" name="extra" value="{{ extra|default('') }}">
+            </div>
+            <button type="submit">Start Scan</button>
+        </form>
+
+        <div id="loading" style="display:none;">
+            <div class="loader"></div>
+            <p>Scanning... Please wait</p>
+        </div>
+
+        {% if scan_data %}
+        <div class="report">
+            <h3>Scan Report</h3>
+            <p><strong>Target:</strong> {{ target }}</p>
+            <p><strong>Scan Type:</strong> {{ scan_type }}</p>
+            <p><strong>Timestamp:</strong> {{ timestamp }}</p>
+            {% if scan_data.error %}
+                <div style="color:red;"><b>Error:</b> {{ scan_data.error }}</div>
+            {% else %}
+                {% for host, info in scan_data.items() %}
+                    <div class="host">
+                        <h4>Host: {{ host }} ({{ info.state }})</h4>
+                        {% for proto, ports in info.protocols.items() %}
+                            <div>
+                                <b>{{ proto|upper }} Ports:</b>
+                                <ul>
+                                {% for port in ports %}
+                                    <li>
+                                        Port {{ port.port }}: {{ port.state }} | {{ port.name }} {% if port.product %}({{ port.product }}){% endif %}
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+    <script>
+        function showExtraField() {
+            var scanType = document.getElementById('scan_type').value;
+            var extraField = document.getElementById('extraField');
+            var label = document.getElementById('extraLabel');
+            if (scanType === '--top-ports') {
+                extraField.style.display = 'block';
+                label.innerHTML = 'How many top ports?';
+            } else if (scanType === '--script') {
+                extraField.style.display = 'block';
+                label.innerHTML = 'Script name:';
+            } else {
+                extraField.style.display = 'none';
+            }
+        }
+        document.getElementById('scan_type').addEventListener('change', showExtraField);
+        window.onload = showExtraField;
+
+        const form = document.querySelector("form");
+        const loading = document.getElementById("loading");
+        form.addEventListener("submit", () => {
+            loading.style.display = "block";
+        });
+    </script>
+</body>
+</html>
